@@ -1,0 +1,33 @@
+###prototyping a math function for lava.seq
+
+#need a combinatorics nCk function.
+def choose(int: n, int: k):
+    if k != 0 and n != 0:
+        return np.math.factorial(n)/(np.math.factorial(k)*np.math.factorial(n-k))
+    else:
+        return 0
+
+
+pydef call_best_genotype(int: ref_count, int: alt_count, float: ref_freq, float: alt_freq):
+    import numpy as np
+    error_rate = 0.01                           #from original LAVA paper,
+    poisson_scale = 7.1                         #empirically derived
+
+    avg_coverage = ref_count + alt_count        #normalize by average 'read depth'
+    scale = (np.power(poisson_scale, avg_coverage)/np.math.factorial(avg_coverage))*np.exp(-poisson_scale)
+    choose_a = choose(avg_coverage, ref_count)  #(ref+alt)C(ref)
+    choose_b = choose(avg_coverage, alt_count)  #(ref+alt)C(alt)
+
+    #calculate according to formulas derived in paper section 3.4
+    hom_ref = choose_a*np.power((1-error_rate),ref_count)*np.power(error_rate, alt_count)
+    het = choose_a/np.power(2,avg_coverage)
+    hom_alt = choose_b*np.power(error_rate,ref_count)*np.power((1-error_rate), alt_count)
+
+    #apply scaling factor to get confidence metric
+    hom_ref = scale*hom_ref
+    het = scale*het
+    hom_alt = scale*hom_alt
+
+    max_score = max(hom_ref, het, hom_alt)
+    max_geno = index(max_score)
+    return max_score, max_geno

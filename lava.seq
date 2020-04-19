@@ -66,14 +66,19 @@ for r in FASTA(sys.argv[1]):
     x = (r.name,len(r.seq))
     refSequence.append(x)
 
-            
+         
 for i in range(1,len(refSequence),1):
     temp = (refSequence[i][0],refSequence[i-1][1] + refSequence[i][1])
     refSequence[i] = temp 
 
+#for a in refSequence:
+#    print a[1]
+
 chrlens_dict = dict[str,int]()
 for x,y in refSequence:
     chrlens_dict[x] = y
+
+
 
 
 
@@ -242,20 +247,24 @@ for entry in kmer_info:
 ref_dict_out.close()
 """
 
+
+
+
+#THIS IS WHERE IT ACTUALLY WORKS
 pos = list[int]()
 for r in FASTA(sys.argv[1]):
     counter = chrlens_dict[r.name] - len(r.seq)
-    for i in range(0,len(r.seq)-32,1):
+    for i in range(0,len(r.seq)-31,1):
         temp = r.seq[i:(i+32)]
-        if "N" in str(temp):
+        if "N" in str(temp) or "n" in str(temp):
             counter = counter + 1
         else:
-            #ref_dict.append(str(temp))
             pos.append(counter)
             counter = counter + 1
-        #if counter % 10000000 == 0:
-         #   print counter
+
+
 print len(pos)
+print pos[2897295166]
 
 ref_dict = list[Kmer[32]]()
 with bio.FASTA(sys.argv[1]) as f:
@@ -267,11 +276,19 @@ print len(ref_dict)
 print pos[0]
 print ref_dict[0]
 
-temp = pos.index(11007)
+
+#temp = pos.index(3137161231)
+#print ref_dict[temp]
+
+temp = pos.index(2000000)
 print ref_dict[temp]
 
-
-
+temp = pos.index(3137161232)
+print temp
+print ref_dict[temp]
+#temp = pos.index(11007)
+#print ref_dict[temp]
+#print ref_dict[2897295166]
 """
 ref_dict = list[str]()
 for r in FASTA(sys.argv[1]):
@@ -289,83 +306,11 @@ for r in FASTA(sys.argv[1]):
             print counter
 print len(pos)
 print len(ref_dict)
+
 """
 
 
-#the next step is to import the list of known SNPs for the given genome
-#this function is in the lava class dictgen.c at line 350 (make_snp_dict_)
-#the folllowing are defined variables in the make_snp_dict function
-#define CHROM_FIELD   1         chrom 'chrX', or 'chrX_crap'
-#define INDEX_FIELD   2         chromStart integer
-#define STRAND_FIELD  6         + or -
-#define REF1_FIELD    7         refNCBI allele
-#define REF2_FIELD    8         refUCSC allele (is this Celera?)
-#define ALT_FIELD     9         "observed" allele1/allele2
-#define TYPE_FIELD    11        "class" unknown/single/in-del/microsatellite/mnp/insertion/delition
-#define COUNT_FIELD   21        "alleleFreqCount" total number of variants for this SNP
-#define ALLELES_FIELD 22        "alleles" allele1,allele2
-#define FREQS_FIELD   24        "alleleFreqs" float
 
-#the first chunk of code in the function counts the number of lines in the file, i dont think we need to do this #todo : confirm - medium
-"""
-Pretty sure I agree with you on don't need to know file length. I think that's a
-memory allocation thing for C only. If that's the case, there's a ton of file length
-collection we don't have to do going forward.
-
-Read in the SNP text file according to the specs in the LAVA original source code.
-From dictgen.c, a few points:
-"copy chromosome name into an independent buffer"   -> CHROM_FIELD
-"check if reference sequences are 1 base long"      -> check lengths of REF1_FIELD and REF2_FIELD
-                                                    -> what to do if they aren't the same nucleotide?
-"we should only process biallelic SNPs"             -> check that there's only two alternatives in COUNT_FIELD
-I'm using pydef to import re and do a regex search for each field. I'm predefining
-the structure of the SNP file, and then having my pydef regex function pull out the
-right group from that ugly af SNP_syntax thing. If you know of a better way to keep
-track of where in the line we are to retrieve fields, I'm all ears!
-
-
-SNP_txt_file = open(sys.argv[3], "r")
-SNP_txt_data = SNP_txt_file.readlines()
-SNP_txt_file.close()
-
-pydef regex(pattern: str, target: str, n: int) -> str
-    import re
-    result = re.search(pattern, target).group(n)
-    return result
-
-for line in SNP_txt_data:
-    #FIELD        0          1                 2         3        4        5        6            7          8          9               10       11             17        19         21           22                  24
-    SNP_syntax = ^\w*?\s{1,}(chr\w{1,2})\s{1,}(\d*)\s{1,}\d*\s{1,}\w*\s{1,}\d*\s{1,}([-+])\s{1,}(\w*)\s{1,}(\w*)\s{1,}(\w*\/\w*)\s{1,}\w*\s{1,}(\w*)\s{1,}\.*?\d{1,}\.*?\d{1,}\.*?(\d{1,})\s{1,}(.*?)\s{1,}\.*?\s{1,}(.*?)
-    CHROM_FIELD = regex(SNP_syntax, line, 1)
-    INDEX_FIELD = regex(SNP_syntax, line, 2)
-    STRAND_FIELD = regex(SNP_syntax, line, 3)
-    REF1_FIELD = regex(SNP_syntax, line, 4)
-    REF2_FIELD = regex(SNP_syntax, line, 5)
-    ALT_FIELD = regex(SNP_syntax, line, 6)
-    TYPE_FIELD = regex(SNP_syntax, line, 7)
-    COUNT_FIELD = regex(SNP_syntax, line, 8)
-    ALLELES_FIELD = regex(SNP_syntax, line, 9)
-    FREQS_FIELD = regex(SNP_syntax, line, 10)
-    print "test"
-need to handle combining the chromosome and position to give reference-relative position.
-need to check:  1) TYPE_FIELD == 'single'
-                2) COUNT_FIELD == 2
-                3) REF1_FIELD == REF2_FIELD
-                4) parse the alternate allele out of ALT_FIELD (or out of ALLELES_FIELD?)
-should do this in order. if type isn't single, skip. if count > 2, skip. if references
-don't agree, skip.
-"""
-
-
-#okay i need to actually run this puppy to see what im dealing with
-#attempt #1
-#this is the input command to run
-#seqc lava.seq ~/lava/lava_files/SRR622461.filt.fastq ~/lava/lava_files/SNPs142_hg19_Common.filt.txt
-#or
-#seqc lava.seq ~/lava/lava_files/hg19.fa ~/lava/lava_files/SNPs142_hg19_Common.filt.txt
-#still not sure which is correct...
-#https://github.com/seq-lang/seq/blob/b025f609d24b691eb12f740eab83c0d4d3b201a7/stdlib/core/file.seq
-#^^ seq-lang file class
 
 
 pydef process_SNP_file(filename: str) -> list[tuple[str,str,str,str,str,str,str]]:
@@ -387,7 +332,7 @@ pydef process_SNP_file(filename: str) -> list[tuple[str,str,str,str,str,str,str]
                 count_field = line[21]
                 alleles_field = line[22]
                 freqs_field = line[24]
-                if type_field == 'single' and count_field == '2' and ref1_field == ref2_field:
+                if type_field == 'single' and count_field == '2' and ref1_field == ref2_field and chrom_field == "chr21":
                     valid_count += 1
                     freqs = freqs_field.split(",")
                     if alleles_field[0] == ref1_field:
