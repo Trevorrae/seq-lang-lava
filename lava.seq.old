@@ -1,0 +1,48 @@
+#****** IF SEQ IS BEING A LITTLE BABY AND THROWING ERRORS RUN THIS IN BASH:
+#******export PATH="/home/trae/.seq:$PATH"
+#******export SEQ_PATH="/home/trae/.seq/stdlib"
+#******export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/home/trae/.seq"
+
+#the first step is to mirror the input of data that lava takes for the preprocess function
+import sys
+import bio
+
+#importing the fasta file - this should be the reference sequence
+#todo make it switch the reference file to uppercase
+#type K = Kmer[32]
+##kset = list[K]()
+#with bio.FASTQ(sys.argv[1]) as f:
+#    for seq in seqs(f):
+#        for kmer in seq.kmers[Kmer[32]](1):
+#            if kmer not in kset:
+#                kset.append(kmer)
+
+#the next step is to import the list of known SNPs for the given genome
+#this function is in the lava class dictgen.c at line 350 (make_snp_dict_)
+#the folllowing are defined variables in the make_snp_dict function
+#define CHROM_FIELD   1
+#define INDEX_FIELD   2
+#define STRAND_FIELD  6
+#define REF1_FIELD    7
+#define REF2_FIELD    8
+#define ALT_FIELD     9
+#define TYPE_FIELD    11
+#define COUNT_FIELD   21
+#define ALLELES_FIELD 22
+#define FREQS_FIELD   24
+
+#the first chunk of code in the function counts the number of lines in the file, i dont think we need to do this #todo : confirm - medium
+
+#okay i need to actually run this puppy to see what im dealing with
+#attempt #1
+#this is the input command to run
+#seqc lava.seq ~/lava/lava_files/SRR622461.filt.fastq ~/lava/lava_files/SNPs142_hg19_Common.filt.txt 
+#or
+#seqc lava.seq ~/lava/lava_files/hg19.fa ~/lava/lava_files/SNPs142_hg19_Common.filt.txt 
+#still not sure which is correct...
+#https://github.com/seq-lang/seq/blob/b025f609d24b691eb12f740eab83c0d4d3b201a7/stdlib/core/file.seq
+#^^ seq-lang file class
+print "test"
+f = open(sys.argv[2], "r")
+t = f.readlines()
+print t[3]

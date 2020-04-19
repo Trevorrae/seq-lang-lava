@@ -1,0 +1,447 @@
+#****** IF SEQ IS BEING A LITTLE BABY AND THROWING ERRORS RUN THIS IN BASH:
+#******export PATH="/home/trae/.seq:$PATH"
+#******export SEQ_PATH="/home/trae/.seq/stdlib"
+#******export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/home/trae/.seq"
+#****** if its being stupid about pythong : ln -s /usr/lib64/libpython3.so ~/.seq/libpython3.7
+"""
+alison chiming in. I will use triple quote style commenting to keep my additions
+distinct. Please delete my comments as they are resolved!
+"""
+
+"""
+To begin, we should check if we're in preprocessing or processing.
+From the original LAVA README.md:
+To run preprocessing, command is
+    lava dict <input FASTA> <input SNP list> <name of ref dict output> <name of output SNP dict>
+To run processing, command is
+    lava lava <input ref dict> <input SNP dict> <input FASTQ of sample> <chrlens file> <name of output file>
+
+"chrlens file" is generated during preprocessing and automatically gets a name of
+ref_file.fa.chrlens (ref_file.fa = original reference file name). We need chrlens
+because it's how we compare a single FASTA file (reference) to the chr/position
+mappings of SNPs in SNP list. a SNP on chromosome 2 at position N is at (length of
+chromosome 1 + position N) in the FASTA file.
+So we need to capture argv[1], 'dict' or 'lava', as an argument for whether we're in
+preprocessing or processing. The next 4 or 5 args are input and output.
+"""
+
+#the first step is to mirror the input of data that lava takes for the preprocess function
+import sys
+import bio
+import python
+
+"""
+import python
+if argv[1] = 'dict':
+    read in ref sequence with bio.FASTA, collect kmers
+    read in SNP list file
+if argv[1] = 'lava':
+    read in earlier made ref_dict and SNP_dict and sample FASTQ
+"""
+
+#importing the fasta file - this should be the reference sequence
+#todo make it switch the reference file to uppercase
+#type K = Kmer[32]
+##kset = list[K]()
+#with bio.FASTQ(sys.argv[1]) as f:                """this should be argv[2], see below"""
+#    for seq in seqs(f):                          """also the reference will be FASTA"""
+#        for kmer in seq.kmers[Kmer[32]](1):
+#            if kmer not in kset:
+#                kset.append(kmer)
+"""
+Because str.upper() is still slow let's not apply it to the entire reference sequence.
+Instead let's do that step to the kmers; if .upper() is sluggish with long strings
+it should be better with 32mers, one at a time right? Also, let's collect the position
+data at the same time: we can make the LAVA original data structure 'kmer_info'.
+Note: LAVA original keeps track of which kmers contain an N. I'm not sure what the
+reason for that is yet.
+"""
+kmer_info = list[tuple[str,str]]()                #cast position as str
+curr_pos = 0                                    #are FASTA sequences begun at position 0 or 1?
+fasta_seq = list[seq]()
+
+
+refSequence = list[tuple[str,int]]()
+for r in FASTA(sys.argv[1]):
+    x = (r.name,len(r.seq))
+    refSequence.append(x)
+
+            
+for i in range(1,len(refSequence),1):
+    temp = (refSequence[i][0],refSequence[i-1][1] + refSequence[i][1])
+    refSequence[i] = temp 
+
+chrlens_dict = dict[str,int]()
+for x,y in refSequence:
+    chrlens_dict[x] = y
+
+
+
+
+"""
+#ref_dict = list[dict[int,str]]()
+#ref_dict = dict[int,str]()
+out = open("refDict.txt","w")
+for r in FASTA(sys.argv[1]):
+    #chr_dict.clear()
+    counter = chrlens_dict[r.name] - len(r.seq)
+    for i in range(0,len(r.seq)-32,1):
+        temp = r.seq[i:(i+32)]
+        if "N" in str(temp):
+            i = i + 32
+            counter = counter + 32
+        else:
+            temp2 = str(temp) + " "  + str(counter)
+            out.write(temp2)
+            out.write("\n")
+            #ref_dict[counter] = str(temp)
+            counter = counter + 1
+        #if counter % 10000000 == 0:
+            #print counter
+   # ref_dict.append(chr_dict)
+#print len(ref_dict)
+#totalSize = 0
+#for a in ref_dict:
+    #print len(a)
+    #totalSize = totalSize + len(a)
+#print totalSize
+"""
+
+"""
+ref_dict = list[Kmer[32]]()
+with bio.FASTA(sys.argv[1]) as f:
+    for seq in seqs(f):
+        for kmer in seq.kmers[Kmer[32]](1):
+            ref_dict.append(kmer)
+
+print len(ref_dict)
+
+print ref_dict[0]
+"""
+"""
+print ref_dict[11006]
+print ref_dict[11010]
+print ref_dict[13108]
+
+print "break"
+print ref_dict[11007]
+print ref_dict[11011]
+print ref_dict[13109]
+"""
+
+
+"""
+#ref_dict = list[tuple[Kmer[32], int]]()  # we need a full type here
+ref_dict = list[Kmer[32]]()
+with bio.FASTA(sys.argv[1]) as f:
+    for seq in seqs(f):
+        for kmer in seq.kmers[Kmer[32]](1):
+            #ref_dict.append(kmer)
+            #temp = (kmer,counter_pos)
+            #counter_pos = counter_pos + 1
+            #if counter_pos %1000 == 0:
+            #    print counter_pos
+            ref_dict.append(kmer)
+print "test"
+print len(ref_dict)
+
+print ref_dict[0]
+"""
+
+
+
+"""
+ref_dict = dict[str,list[int]]()
+for r in FASTA(sys.argv[1]):
+    counter = chrlens_dict[r.name] - len(r.seq)
+    for i in range(0,len(r.seq)-32,1):
+        temp = r.seq[i:(i+32)]
+        if "N" in str(temp):
+            i = i + 32
+            counter = counter + 33
+        else:
+            if str(temp) in ref_dict:
+                ref_dict[str(temp)].append(counter)
+            else:
+                ref_dict[str(temp)] = [counter]
+            #ref_dict[str(temp)] = temp2
+            counter = counter + 1
+        if counter % 10000000 == 0:
+            print counter
+   # ref_dict.append(chr_dict)
+print len(ref_dict)
+
+totalLength = 0
+for a in ref_dict:
+    totalLength = totalLength + len(ref_dict[a])
+
+"""
+
+
+
+
+"""
+ref_dict = list[Kmer[32]]()
+with bio.FASTA(sys.argv[1]) as f:
+    for seq in seqs(f):
+        for i in range(0,len(seq)-32,1):
+            temp = seq[i:i+32]
+            ref_dict.append(Kmer[32](temp))
+"""
+
+
+
+
+"""
+ref_dict = list[str]()
+for r in FASTA(sys.argv[1]):
+    for i in range(0,len(r.seq)-32,1):
+        ref_dict.append(str(r.seq[i:i+32]))
+print len(ref_dict)
+
+print ref_dict[10000]
+"""
+
+#ref_dict = list[Kmer[32]]()
+#with bio.FASTA(sys.argv[1]) as f:
+#    for seq in seqs(f):
+#        for kmer in seq.kmers[Kmer[32]](1):
+#            ref_dict.append(kmer)
+
+
+
+"""
+with bio.FASTA(sys.argv[1]) as data:
+    print("first step")
+    #fasta_seq.append(seqs(data))
+    print(data.name, len(seqs(data)))
+for seq in fasta_seq:
+    print("second step")
+    for kmer in seq.kmers[Kmer[32]](1):
+        print("third step")
+        print(kmer)
+"""
+"""
+for read in bio.FASTA(sys.argv[1], fai = False):
+    print("read in biofasta")
+    print(read.name, len(read.seq))
+    for seqs in read.seq:
+        print("looking for kmers")
+        for kmer in seqs.kmers[Kmer[32]](1):
+            print("finding kmers")
+            str_kmer = str(kmer)
+            str_kmer.upper()
+            new_entry = (str_kmer, str(curr_pos))
+            kmer_info.append(new_entry)
+            curr_pos += 1                           #stride is 1 so increment position by stride
+
+
+ref_dict_out = open(sys.argv[4], "w")
+for entry in kmer_info:
+    ref_dict_out.write(entry)
+ref_dict_out.close()
+"""
+
+pos = list[int]()
+for r in FASTA(sys.argv[1]):
+    counter = chrlens_dict[r.name] - len(r.seq)
+    for i in range(0,len(r.seq)-32,1):
+        temp = r.seq[i:(i+32)]
+        if "N" in str(temp):
+            counter = counter + 1
+        else:
+            #ref_dict.append(str(temp))
+            pos.append(counter)
+            counter = counter + 1
+        #if counter % 10000000 == 0:
+         #   print counter
+print len(pos)
+
+ref_dict = list[Kmer[32]]()
+with bio.FASTA(sys.argv[1]) as f:
+    for seq in seqs(f):
+        for kmer in seq.kmers[Kmer[32]](1):
+            ref_dict.append(kmer)
+print len(ref_dict)
+
+print pos[0]
+print ref_dict[0]
+
+temp = pos.index(11007)
+print ref_dict[temp]
+
+
+
+"""
+ref_dict = list[str]()
+for r in FASTA(sys.argv[1]):
+    counter = chrlens_dict[r.name] - len(r.seq)
+    for i in range(0,len(r.seq)-32,1):
+        temp = r.seq[i:(i+32)]
+        if "N" in str(temp):
+            i = i + 32
+            counter = counter + 32
+        else:
+            ref_dict.append(str(temp))
+            #pos.append(counter)
+            counter = counter + 1
+        if counter % 10000000 == 0:
+            print counter
+print len(pos)
+print len(ref_dict)
+"""
+
+
+#the next step is to import the list of known SNPs for the given genome
+#this function is in the lava class dictgen.c at line 350 (make_snp_dict_)
+#the folllowing are defined variables in the make_snp_dict function
+#define CHROM_FIELD   1         chrom 'chrX', or 'chrX_crap'
+#define INDEX_FIELD   2         chromStart integer
+#define STRAND_FIELD  6         + or -
+#define REF1_FIELD    7         refNCBI allele
+#define REF2_FIELD    8         refUCSC allele (is this Celera?)
+#define ALT_FIELD     9         "observed" allele1/allele2
+#define TYPE_FIELD    11        "class" unknown/single/in-del/microsatellite/mnp/insertion/delition
+#define COUNT_FIELD   21        "alleleFreqCount" total number of variants for this SNP
+#define ALLELES_FIELD 22        "alleles" allele1,allele2
+#define FREQS_FIELD   24        "alleleFreqs" float
+
+#the first chunk of code in the function counts the number of lines in the file, i dont think we need to do this #todo : confirm - medium
+"""
+Pretty sure I agree with you on don't need to know file length. I think that's a
+memory allocation thing for C only. If that's the case, there's a ton of file length
+collection we don't have to do going forward.
+
+Read in the SNP text file according to the specs in the LAVA original source code.
+From dictgen.c, a few points:
+"copy chromosome name into an independent buffer"   -> CHROM_FIELD
+"check if reference sequences are 1 base long"      -> check lengths of REF1_FIELD and REF2_FIELD
+                                                    -> what to do if they aren't the same nucleotide?
+"we should only process biallelic SNPs"             -> check that there's only two alternatives in COUNT_FIELD
+I'm using pydef to import re and do a regex search for each field. I'm predefining
+the structure of the SNP file, and then having my pydef regex function pull out the
+right group from that ugly af SNP_syntax thing. If you know of a better way to keep
+track of where in the line we are to retrieve fields, I'm all ears!
+
+
+SNP_txt_file = open(sys.argv[3], "r")
+SNP_txt_data = SNP_txt_file.readlines()
+SNP_txt_file.close()
+
+pydef regex(pattern: str, target: str, n: int) -> str
+    import re
+    result = re.search(pattern, target).group(n)
+    return result
+
+for line in SNP_txt_data:
+    #FIELD        0          1                 2         3        4        5        6            7          8          9               10       11             17        19         21           22                  24
+    SNP_syntax = ^\w*?\s{1,}(chr\w{1,2})\s{1,}(\d*)\s{1,}\d*\s{1,}\w*\s{1,}\d*\s{1,}([-+])\s{1,}(\w*)\s{1,}(\w*)\s{1,}(\w*\/\w*)\s{1,}\w*\s{1,}(\w*)\s{1,}\.*?\d{1,}\.*?\d{1,}\.*?(\d{1,})\s{1,}(.*?)\s{1,}\.*?\s{1,}(.*?)
+    CHROM_FIELD = regex(SNP_syntax, line, 1)
+    INDEX_FIELD = regex(SNP_syntax, line, 2)
+    STRAND_FIELD = regex(SNP_syntax, line, 3)
+    REF1_FIELD = regex(SNP_syntax, line, 4)
+    REF2_FIELD = regex(SNP_syntax, line, 5)
+    ALT_FIELD = regex(SNP_syntax, line, 6)
+    TYPE_FIELD = regex(SNP_syntax, line, 7)
+    COUNT_FIELD = regex(SNP_syntax, line, 8)
+    ALLELES_FIELD = regex(SNP_syntax, line, 9)
+    FREQS_FIELD = regex(SNP_syntax, line, 10)
+    print "test"
+need to handle combining the chromosome and position to give reference-relative position.
+need to check:  1) TYPE_FIELD == 'single'
+                2) COUNT_FIELD == 2
+                3) REF1_FIELD == REF2_FIELD
+                4) parse the alternate allele out of ALT_FIELD (or out of ALLELES_FIELD?)
+should do this in order. if type isn't single, skip. if count > 2, skip. if references
+don't agree, skip.
+"""
+
+
+#okay i need to actually run this puppy to see what im dealing with
+#attempt #1
+#this is the input command to run
+#seqc lava.seq ~/lava/lava_files/SRR622461.filt.fastq ~/lava/lava_files/SNPs142_hg19_Common.filt.txt
+#or
+#seqc lava.seq ~/lava/lava_files/hg19.fa ~/lava/lava_files/SNPs142_hg19_Common.filt.txt
+#still not sure which is correct...
+#https://github.com/seq-lang/seq/blob/b025f609d24b691eb12f740eab83c0d4d3b201a7/stdlib/core/file.seq
+#^^ seq-lang file class
+
+
+pydef process_SNP_file(filename: str) -> list[tuple[str,str,str,str,str,str,str]]:
+    import csv
+    valid_count = 0
+    #     chr-chrStart-ref-variant-freqref-freqvar
+    snp_dict = []
+    with open(filename) as SNP_file:
+        SNP_data = csv.reader(SNP_file, delimiter='\t')
+        for line in SNP_data:
+            if line[0] != "#":
+                chrom_field = line[1]
+                index_field = line[2]
+                strand_field = line[6]
+                ref1_field = line[7]
+                ref2_field = line[8]
+                alt_field = line[9]
+                type_field = line[11]
+                count_field = line[21]
+                alleles_field = line[22]
+                freqs_field = line[24]
+                if type_field == 'single' and count_field == '2' and ref1_field == ref2_field:
+                    valid_count += 1
+                    freqs = freqs_field.split(",")
+                    if alleles_field[0] == ref1_field:
+                        tempRef = alleles_field[0]
+                        tempVar = alleles_field[2]
+                        if strand_field == "-":
+                            if alleles_field[0] == "G":
+                                tempRef = "C"
+                            if alleles_field[0] == "C":
+                                tempRef = "G"
+                            if alleles_field[0] == "A":
+                                tempRef = "T"
+                            if alleles_field[0] == "T":
+                                tempRef = "A"
+                            if alleles_field[2] == "G":
+                                tempVar = "C"
+                            if alleles_field[2] == "C":
+                                tempVar = "G"
+                            if alleles_field[2] == "A":
+                                tempVar = "T"
+                            if alleles_field[2] == "T":
+                                tempVar = "A"
+                        freqRef = freqs[0]
+                        freqVar = freqs[1]
+                        temp = (chrom_field,index_field,tempRef,tempVar,freqRef,freqVar,strand_field)
+                    else:
+                        tempRef = alleles_field[2]
+                        tempVar = alleles_field[0]
+                        if strand_field == "-":
+                            if alleles_field[2] == "G":
+                                tempRef = "C"
+                            if alleles_field[2] == "C":
+                                tempRef = "G"
+                            if alleles_field[2] == "A":
+                                tempRef = "T"
+                            if alleles_field[2] == "T":
+                                tempRef = "A"
+                            if alleles_field[0] == "G":
+                                tempVar = "C"
+                            if alleles_field[0] == "C":
+                                tempVar = "G"
+                            if alleles_field[0] == "A":
+                                tempVar = "T"
+                            if alleles_field[0] == "T":
+                                tempVar = "A"
+                        freqRef = freqs[1]
+                        freqVar = freqs[0]
+                        temp = (chrom_field,index_field,tempRef,tempVar,freqRef,freqVar,strand_field)
+                    snp_dict.append(temp)
+        return snp_dict
+
+snp_dict = list[tuple[str,str,str,str,str,str,str]]()
+snp_dict = process_SNP_file(sys.argv[2])
+for i in range(0,2,1):
+    print snp_dict[i]
+print len(snp_dict)
+#command to run : seqc lava.seq ../lava/lava_files/hg19.fa ../lava/lava_files/SNPfile out1 out2
